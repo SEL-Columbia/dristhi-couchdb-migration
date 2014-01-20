@@ -8,14 +8,15 @@ function filterByEcIds(ecIds) {
         return  _.contains(ecIds, openANC.key.caseId);
     });
 }
-var getANC = function (ecIds, ancVisits) {
-    var cradle = require('cradle');
-
+function createDataBaseConnection(cradle) {
     var drishtiDb = new (cradle.Connection)(('http://localhost', 5984, {
         cache: true,
         raw: false
     })).database('drishti');
+    return drishtiDb;
+}
 
+function isDataBaseExists(drishtiDb) {
     drishtiDb.exists(function (err, exists) {
         if (err) {
             console.log('error', err);
@@ -26,7 +27,9 @@ var getANC = function (ecIds, ancVisits) {
             drishtiDb.create();
         }
     });
+}
 
+function createAllOpenANCsView(drishtiDb) {
     drishtiDb.save('_design/Mothers', {
         views: {
             byOpenANCs: {
@@ -38,13 +41,15 @@ var getANC = function (ecIds, ancVisits) {
             }
         }
     });
+}
 
+function modifyMotherDetails(drishtiDb, ecIds, ancVisits) {
     drishtiDb.view('Mothers/byOpenANCs', function (err, res) {
+        console.log("ANC visits res: " + res);
         res.forEach(function (row) {
             openANCs.push(row);
         });
         requiredANCs = filterByEcIds(ecIds);
-        console.log("Required ANCs: " + JSON.stringify(requiredANCs));
         requiredANCs.forEach(function (anc) {
             anc.key.ancVisits = _.filter(ancVisits, function (ancVisit) {
                 return anc.key.caseId === ancVisit.entityId;
@@ -54,13 +59,17 @@ var getANC = function (ecIds, ancVisits) {
             });
         });
         drishtiDb.save(requiredANCs, function (err, res) {
-            // Handle response
+            console.log("Response: " + res);
         });
     });
+}
 
-    drishtiDb.save(requiredANCs, function (err, res) {
-        // Handle response
-    });
+var getANC = function (ecIds, ancVisits) {
+    var cradle = require('cradle');
+    var drishtiDb = createDataBaseConnection(cradle);
+    isDataBaseExists(drishtiDb);
+    createAllOpenANCsView(drishtiDb);
+    modifyMotherDetails(drishtiDb, ecIds, ancVisits);
 };
 
 exports.getANC = getANC;
