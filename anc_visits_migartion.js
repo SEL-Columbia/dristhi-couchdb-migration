@@ -138,7 +138,7 @@ var updateANCWithANCVisitInformation = function (response) {
             bpDiastolic: _.find(fields,function (field) {
                 return field.name === 'bpDiastolic';
             }).value
-        }
+        };
     });
     _.each(openANCs, function (anc) {
         var allANCVisitsForMother = _.where(ancVisits, {entityId: anc.value});
