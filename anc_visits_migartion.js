@@ -17,6 +17,7 @@ var init = function () {
 var connectToDristhiFormDB = function () {
     var deferred = q.defer();
     dristhiFormDb = new cradle.Connection(DB_SERVER, DB_PORT, {cache: true, raw: false}).database(FORM_DB_NAME);
+    console.log('Connected to Dristhi Form DB.');
     deferred.resolve();
     return deferred.promise;
 };
@@ -24,6 +25,7 @@ var connectToDristhiFormDB = function () {
 var connectToDristhiDB = function () {
     var deferred = q.defer();
     dristhiDb = new cradle.Connection(DB_SERVER, DB_PORT, {    cache: true, raw: false}).database(DRISTHI_DB_NAME);
+    console.log('Connected to Dristhi DB.');
     deferred.resolve();
     return deferred.promise;
 };
@@ -42,9 +44,10 @@ var createAllFormSubmissionsByNameAndEntityIDView = function () {
         }
     }, function (err, res) {
         if (err) {
-            console.log('Error when creating Form Submission by name and entity id view. Message: ' + err);
+            console.error('Error when creating Form Submission by name and entity id view. Message: %s.', err);
             deferred.reject(err);
         }
+        console.log('Created view: FormSubmission_Temp.byFormNameAndEntityId.');
         deferred.resolve(res);
     });
     return deferred.promise;
@@ -64,11 +67,49 @@ var createAllOpenANCsView = function () {
         }
     }, function (err, res) {
         if (err) {
-            console.log('Error when creating All Open ANCs view. Message: ' + err);
+            console.error('Error when creating All Open ANCs view. Message: %s.', err);
             deferred.reject(err);
         }
+        console.log('Created view: Mother_Temp.allOpenANCs.');
         deferred.resolve(res);
     });
+    return deferred.promise;
+};
+
+var getAllOpenANCs = function () {
+    var deferred = q.defer();
+    dristhiDb.view('Mother_Temp/allOpenANCs', function (err, response) {
+        if (err) {
+            console.error('Error when finding open ANCs: %s.', JSON.stringify(err));
+            deferred.reject(err);
+        }
+        deferred.resolve(response);
+    });
+    return deferred.promise;
+};
+
+var getAllANCVisitsForANC = function (openANCs) {
+    var deferred = q.defer();
+    var entityIds = _.pluck(openANCs, 'value');
+    console.log('Found ' + entityIds.length + ' open ANCs.');
+
+    dristhiFormDb.view('FormSubmission_Temp/byFormNameAndEntityId',
+        {
+            keys: _.map(entityIds, function (entityId) {
+                return ['anc_visit', entityId];
+            }),
+            include_docs: true
+        },
+        function (err, res) {
+            if (err) {
+                console.error('Error when getting ANC visit forms: %s.', JSON.stringify(err));
+                deferred.reject(err);
+                return;
+            }
+            console.log('Found ' + res.length + ' ANC Visits.');
+            deferred.resolve({ancVisitFormSubmissions: res, openANCs: openANCs});
+        });
+
     return deferred.promise;
 };
 
@@ -99,67 +140,46 @@ var updateANCWithANCVisitInformation = function (response) {
             }).value
         }
     });
-//            console.log(JSON.stringify(ancVisits));
     _.each(openANCs, function (anc) {
         var allANCVisitsForMother = _.where(ancVisits, {entityId: anc.value});
         _.each(allANCVisitsForMother, function (ancVisit) {
             delete ancVisit.entityId;
         });
+        console.log('Added %s ANC Visits to ANC %s.', allANCVisitsForMother.length, anc.value);
         anc.key.ancVisits = allANCVisitsForMother;
     });
-    console.log("Updated ANCs: " + JSON.stringify(openANCs));
     var deferred = q.defer();
     deferred.resolve(openANCs);
     return deferred.promise;
 };
 
 var updateMotherDocument = function (openANCs) {
-    _.each(openANCs, function (anc) {
-        dristhiDb.merge(anc.id, anc.key, function (err, res) {
-            if (err) {
-                console.log('Could not update mother due to error. Error: ' + JSON.stringify(err) + ', Mother: ' + anc.value);
-            } else {
-                console.log('Updated mother: ' + anc.value);
-            }
-        });
+    var deferred = q.defer();
+    var ancs = _.map(openANCs, function (anc) {
+        return anc.key;
     });
-};
-
-var getAllANCVisitsForANC = function (openANCs) {
-    var deferred = q.defer();
-    var entityIds = _.pluck(openANCs, 'value');
-    console.log('Found ' + entityIds.length + ' open ANCs.');
-
-    dristhiFormDb.view('FormSubmission_Temp/byFormNameAndEntityId',
-        {
-            keys: _.map(entityIds, function (entityId) {
-                return ['anc_visit', entityId];
-            }),
-            include_docs: true
-        },
-        function (err, res) {
-            if (err) {
-                console.log('Error when getting ANC visit forms: ' + JSON.stringify(err));
-                deferred.reject(err);
-                return;
-            }
-            console.log('Found ' + res.length + ' ANC Visits.');
-            deferred.resolve({ancVisitFormSubmissions: res, openANCs: openANCs});
-        });
-
-    return deferred.promise;
-};
-
-var getAllOpenANCs = function () {
-    var deferred = q.defer();
-    dristhiDb.view('Mother_Temp/allOpenANCs', function (err, response) {
+    dristhiDb.save(ancs, function (err, res) {
         if (err) {
-            console.log('Error when finding open ANCs: ' + JSON.stringify(err));
-            deferred.reject(err);
+            deferred.reject('Error when bulk updating ANCs: ' + JSON.stringify(err));
         }
-        deferred.resolve(response);
+        var notUpdatedANCs = _.filter(res, function (item) {
+            return _.has(item, 'error');
+        });
+        if (notUpdatedANCs.length > 0) {
+            deferred.reject('Unable to update following ANCs: ' + JSON.stringify(notUpdatedANCs));
+        }
+        console.log('Updated %s ANCs with ANC visit information', openANCs.length);
+        deferred.resolve();
     });
     return deferred.promise;
+};
+
+var reportMigrationComplete = function () {
+    console.log("Migration complete.");
+};
+
+var reportMigrationFailure = function (err) {
+    console.error("Migration Failed. Error: %s.", err);
 };
 
 init()
@@ -171,4 +191,4 @@ init()
     .then(getAllANCVisitsForANC)
     .then(updateANCWithANCVisitInformation)
     .then(updateMotherDocument)
-;
+    .then(reportMigrationComplete, reportMigrationFailure);
