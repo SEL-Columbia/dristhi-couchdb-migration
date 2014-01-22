@@ -2,7 +2,7 @@
 module.exports = function (grunt) {
     require('time-grunt')(grunt);
     require('load-grunt-tasks')(grunt);
-    var target = grunt.option('target');
+    var target = grunt.option('target') || '0_help_file';
 
     grunt.initConfig({
         env: {
@@ -26,6 +26,13 @@ module.exports = function (grunt) {
             forever: false
         },
         nodemon: {
+            help: {
+                script: 'lib/index.js',
+                options: {
+                    args: ['', '', '', '', '0_help_file'],
+                    watch: ''
+                }
+            },
             dev: {
                 script: 'lib/index.js',
                 options: {
@@ -44,4 +51,5 @@ module.exports = function (grunt) {
     });
     grunt.registerTask('default', ['help']);
     grunt.registerTask('migrate-dev', ['nodemon:dev']);
+    grunt.registerTask('help', ['nodemon:help']);
 };
