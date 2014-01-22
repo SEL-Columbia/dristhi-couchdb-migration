@@ -22,9 +22,6 @@ module.exports = function (grunt) {
                 src: ['lib/**/*.js']
             }
         },
-        watch: {
-            forever: false
-        },
         nodemon: {
             help: {
                 script: 'lib/index.js',
