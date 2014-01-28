@@ -37,10 +37,17 @@ module.exports = function (grunt) {
                     watch: ''
                 }
             },
-            prod: {
+            ec2: {
                 script: 'lib/index.js',
                 options: {
                     args: ['http://localhost', 5985, 'drishti-form', 'drishti', target],
+                    watch: ''
+                }
+            },
+            prod: {
+                script: 'lib/index.js',
+                options: {
+                    args: ['http://localhost', 5986, 'drishti-form', 'drishti', target],
                     watch: ''
                 }
             }
