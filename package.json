@@ -1,7 +1,7 @@
 {
     "name": "dristhi-couchdb-migrations",
     "version": "0.0.0",
-    "main": "lib/anc_visits_migration.js",
+    "main": "lib/0_help_file.js",
     "description": "Node application to migrate Dristhi Couch Database.",
     "homepage": "https://github.com/SEL-Columbia/dristhi-couchdb-migration",
     "bugs": "https://github.com/SEL-Columbia/dristhi-couchdb-migration/issues",
@@ -25,12 +25,12 @@
         "cli": "~0.4.5"
     },
     "devDependencies": {
+        "grunt": "~0.4.1",
         "grunt-contrib-jshint": "~0.7.0",
         "grunt-contrib-watch": "~0.5.0",
         "load-grunt-tasks": "~0.2.0",
         "time-grunt": "~0.2.0",
         "jshint-stylish": "~0.1.3",
-        "grunt-env": "~0.4.1",
         "grunt-nodemon": "~0.2.0"
     }
 }

@@ -5,11 +5,6 @@ module.exports = function (grunt) {
     var target = grunt.option('target') || '0_help_file';
 
     grunt.initConfig({
-        env: {
-            dev: {
-                port: 5984
-            }
-        },
         jshint: {
             options: {
                 jshintrc: '.jshintrc',
@@ -54,6 +49,7 @@ module.exports = function (grunt) {
         }
     });
     grunt.registerTask('default', ['help']);
+    grunt.registerTask('build', ['jshint']);
     grunt.registerTask('migrate-dev', ['nodemon:dev']);
     grunt.registerTask('help', ['nodemon:help']);
 };
