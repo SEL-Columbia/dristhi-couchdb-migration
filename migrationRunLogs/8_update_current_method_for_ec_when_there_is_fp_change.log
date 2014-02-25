@@ -1,0 +1,11 @@
+Connected to DB: drishti-form.
+Connected to DB: drishti.
+Created view: _design/EC_Temp.
+Created view: _design/FormSubmission_Temp.
+Found 205 ECs.
+Found 290 Forms.
+187 number of couples to be updated.
+Migration complete.
+Successfully deleted the doc with id: _design/FormSubmission_Temp.
+Successfully deleted the doc with id: _design/EC_Temp.
+Updated 187 docs.
